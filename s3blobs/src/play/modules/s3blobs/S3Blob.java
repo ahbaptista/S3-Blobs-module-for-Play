@@ -1,3 +1,4 @@
+
 package play.modules.s3blobs;
 
 import java.io.InputStream;
@@ -8,6 +9,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 import org.hibernate.HibernateException;
+import org.hibernate.engine.spi.SessionImplementor;
 import org.hibernate.type.StringType;
 import org.hibernate.usertype.UserType;
 
@@ -30,32 +32,32 @@ public class S3Blob implements BinaryField, UserType, Serializable {
 
 	public S3Blob() {
 	}
-	
+
 	public S3Blob(String keyPrefix) {
 		this.keyPrefix = keyPrefix;
-	}			
-	
+	}
+
 	public S3Blob(long contentLength) {
 		this.contentLength = contentLength;
 	}
-	
+
 	public S3Blob(String keyPrefix, long contentLength) {
 		this.keyPrefix = keyPrefix;
 		this.contentLength = contentLength;
-	}	
+	}
 
 	private S3Blob(String bucket, String s3Key) {
 		this.bucket = bucket;
 		this.key = s3Key;
 	}
 
-	@Override
+	//	@Override
 	public InputStream get() {
 		S3Object s3Object = s3Client.getObject(bucket, key);
 		return s3Object.getObjectContent();
 	}
 
-	@Override
+	//	@Override
 	public void set(InputStream is, String type) {
 		this.bucket = s3Bucket;
 		this.key = (keyPrefix != null ? keyPrefix : "") + Codec.UUID();
@@ -73,20 +75,20 @@ public class S3Blob implements BinaryField, UserType, Serializable {
 	public void delete () {
 		s3Client.deleteObject(s3Bucket, key);
 	}
-	
-	@Override
+
+	//@Override
 	public long length() {
 		ObjectMetadata om = s3Client.getObjectMetadata(bucket, key);
 		return om.getContentLength();
 	}
 
-	@Override
+	//	@Override
 	public String type() {
 		ObjectMetadata om = s3Client.getObjectMetadata(bucket, key);
 		return om.getContentType();
 	}
 
-	@Override
+	//	@Override
 	public boolean exists() {
 		if (bucket == null || bucket.isEmpty() || key == null || key.isEmpty()) {
 			return false;
@@ -95,45 +97,61 @@ public class S3Blob implements BinaryField, UserType, Serializable {
 		return om != null;
 	}
 
-	@Override
+	//	@Override
 	public int[] sqlTypes() {
 		return new int[] { Types.VARCHAR };
 	}
 
-	@Override
+	//	@Override
 	public Class returnedClass() {
 		return S3Blob.class;
 	}
 
-	@Override
+	//@Override
 	public boolean equals(Object o, Object o1) throws HibernateException {
 		return o == null ? false : o.equals(o1);
 	}
 
-	@Override
+	//@Override
 	public int hashCode(Object o) throws HibernateException {
 		return o.hashCode();
 	}
 
-	@Override
-	public Object nullSafeGet(ResultSet rs, String[] names, Object o) throws HibernateException, SQLException {
-		String val = StringType.INSTANCE.nullSafeGet(rs, names[0]);
+	public Object nullSafeGet(ResultSet resultSet, String[] strings, SessionImplementor sessionImplementor, Object o) throws HibernateException, SQLException {
+		String val = StringType.INSTANCE.nullSafeGet(resultSet, strings[0], sessionImplementor);
 		if (val == null || val.length() == 0 || !val.contains("|")) {
 			return new S3Blob();
 		}
 		return new S3Blob(val.split("[|]")[0], val.split("[|]")[1]);
 	}
 
-	@Override
-	public void nullSafeSet(PreparedStatement ps, Object o, int i) throws HibernateException, SQLException {
+	public void nullSafeSet(PreparedStatement preparedStatement, Object o, int i, SessionImplementor sessionImplementor) throws HibernateException, SQLException {
 		if (o != null) {
-			ps.setString(i, ((S3Blob) o).bucket + "|" + ((S3Blob) o).key);
+			preparedStatement.setString(i, ((S3Blob) o).bucket + "|" + ((S3Blob) o).key);
 		} else {
-			ps.setNull(i, Types.VARCHAR);
+			preparedStatement.setNull(i, Types.VARCHAR);
 		}
 	}
 
-	@Override
+//	@Override
+//	public Object nullSafeGet(ResultSet rs, String[] names, Object o) throws HibernateException, SQLException {
+//		String val = StringType.INSTANCE.nullSafeGet(rs, names[0]);
+//		if (val == null || val.length() == 0 || !val.contains("|")) {
+//			return new S3Blob();
+//		}
+//		return new S3Blob(val.split("[|]")[0], val.split("[|]")[1]);
+//	}
+
+//	@Override
+//	public void nullSafeSet(PreparedStatement ps, Object o, int i) throws HibernateException, SQLException {
+//		if (o != null) {
+//			ps.setString(i, ((S3Blob) o).bucket + "|" + ((S3Blob) o).key);
+//		} else {
+//			ps.setNull(i, Types.VARCHAR);
+//		}
+//	}
+
+	//	@Override
 	public Object deepCopy(Object o) throws HibernateException {
 		if (o == null) {
 			return null;
@@ -141,22 +159,22 @@ public class S3Blob implements BinaryField, UserType, Serializable {
 		return new S3Blob(this.bucket, this.key);
 	}
 
-	@Override
+	//	@Override
 	public boolean isMutable() {
 		return true;
 	}
 
-	@Override
+	//	@Override
 	public Serializable disassemble(Object o) throws HibernateException {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
-	@Override
+	//	@Override
 	public Object assemble(Serializable srlzbl, Object o) throws HibernateException {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
-	@Override
+	//	@Override
 	public Object replace(Object o, Object o1, Object o2) throws HibernateException {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
